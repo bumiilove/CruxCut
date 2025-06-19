@@ -9,9 +9,11 @@ import time
 from ultralytics import YOLO
 import argparse
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 import logging
 # from profiler import Profiler
+import multiprocessing
+
 
 @dataclass
 class CropperConfig:
@@ -21,12 +23,12 @@ class CropperConfig:
     square_mode: bool = True
     do_pose_estimation: bool = False
     show_object_detection: bool = False
-    save_detection: bool = False
-    model_version: int = 8
+    save_detection: bool = True
+    model_version: int = 11
     confidence_threshold: float = 0.3
-
+    
 class VideoCropper:
-    def __init__(self, config: Optional[CropperConfig] = None):
+    def __init__(self, config: Optional[CropperConfig] =  None):
         self.config = config or CropperConfig()
         self.model = None
         self.device = self._get_device()
@@ -48,13 +50,16 @@ class VideoCropper:
             self.model = YOLO("yolov5s.pt")
             self.model.conf = self.config.confidence_threshold
             self.model.classes = [0]
+        elif self.config.model_version == 11:
+            self.model = YOLO("yolo11n.pt")
         
         self.model.fuse()
         self.model.to(self.device)
+        self.model.to("cpu")
         self.detector = ObjectDetector(self.model, self.config)
         
-    def process_video(self, input_path: str, output_path: str) -> bool:
-        self.processor = VideoProcessor(input_path, output_path, self.config)
+    def process_video(self, input_path: str, output_path: str, job_status: dict, jobid: str) -> bool:
+        self.processor = VideoProcessor(input_path, output_path, job_status, jobid, self.config)
         self.processor.process_video(self.detector)
         return True
 
@@ -65,53 +70,80 @@ class ObjectDetector:
         self.w_margin_list: List[float] = []
         self.h_margin_list: List[float] = []
         
-    def detect_person(self, frame: np.ndarray, pre_center_x: float, pre_center_y: float) -> Tuple[float, float]:
-        w = frame.shape[1]
-        w_start = int(w // 4)
-        w_end = int(w * 3 // 4)
-        frame_center_x = frame.shape[1] // 2
-        
-        results = self.model(frame, stream=True, verbose=False)
-        center_x, center_y = -1, -1
-        most_closed_center_x = float('inf')
-        
-        for result in results:
-            for box in result.boxes:
-                pos = box.xyxy[0].tolist()
-                pos = [round(x) for x in pos]
-                x1, y1, x2, y2 = pos
-                class_id = int(box.cls[0].item())
-                
-                if class_id == 0:  # Person class
-                    object_center = ((x1 + x2) // 2, (y1 + y2) // 2)
-                    dist_from_pre_center = np.sqrt(
-                        (pre_center_x - object_center[0])**2 + 
-                        (pre_center_y - object_center[1])**2
-                    )
-                    
-                    if object_center[0] < w_start or object_center[0] > w_end:
-                        continue
-                        
-                    dist_from_center = np.abs(object_center[0] - frame_center_x)
-                    if dist_from_pre_center > w//3:
-                        continue
-                    
-                    if dist_from_center < most_closed_center_x:
-                        most_closed_center_x = dist_from_center
-                        center_x = object_center[0]
-                        center_y = object_center[1]
-                        
-                        w_margin = (x2 - x1) * self.config.margin_ratio // 2
-                        h_margin = (y2 - y1) * self.config.margin_ratio // 2
-                        
-                        self.w_margin_list.append(w_margin)
-                        self.h_margin_list.append(h_margin)
-                        
-        if center_x == -1 or center_y == -1:
-            center_x, center_y = pre_center_x, pre_center_y
-            
-        return center_x, center_y
+    def detect_person(self, frame: np.ndarray, prev_center_x: float, prev_center_y: float, frame_index: int) -> Tuple[float, float]:
+        # 프레임 너비 기반 탐지 가능한 중심 영역 정의
+        frame_width = frame.shape[1]
+        focus_zone_start = frame_width // 6
+        focus_zone_end = frame_width * 5 // 6
+        frame_center_x = frame_width // 2
 
+        # 객체 탐지 실행
+        results = self.model(frame, stream=True, verbose=False)
+        selected_center_x, selected_center_y = -1, -1
+        min_distance_to_center = float('inf')
+
+        person_detected = False
+
+        # 탐지 결과 반복
+        for result in results:
+            for bbox in result.boxes:
+                # 바운딩 박스 좌표 및 클래스 정보 추출
+                x1, y1, x2, y2 = map(round, bbox.xyxy[0].tolist())
+                class_id = int(bbox.cls[0].item())
+                confidence = bbox.conf[0].item()
+
+                if class_id == 0:  # 사람이 탐지된 경우
+                    logging.info(f"Detected person at {(x1, y1, x2, y2)} with confidence {confidence}")
+
+                    # 사람 중심 좌표 계산
+                    person_center_x = (x1 + x2) // 2
+                    person_center_y = (y1 + y2) // 2
+
+                    # 이전 중심 좌표와의 거리 계산
+                    dist_to_prev = np.hypot(person_center_x - prev_center_x, person_center_y - prev_center_y)
+                    dist_to_frame_center = abs(person_center_x - frame_center_x)
+
+                    # 탐지 범위 바깥에 있거나 너무 튄 경우 무시
+                    if not (focus_zone_start <= person_center_x <= focus_zone_end):
+                        continue
+                    if dist_to_prev > frame_width // 4:
+                        continue
+
+                    # 중심에 가장 가까운 사람 하나만 선택
+                    if dist_to_frame_center < min_distance_to_center:
+                        min_distance_to_center = dist_to_frame_center
+                        selected_center_x = person_center_x
+                        selected_center_y = person_center_y
+
+                        # 마진 계산 및 저장
+                        width_margin = ((x2 - x1) * self.config.margin_ratio) // 2
+                        height_margin = ((y2 - y1) * self.config.margin_ratio) // 2
+                        self.w_margin_list.append(width_margin)
+                        self.h_margin_list.append(height_margin)
+
+                        person_detected = True
+
+                        # 옵션에 따라 탐지 이미지 저장
+                        if self.config.save_detection:
+                            annotated = result.plot()
+                            output_path = f"temp/person_detected_{frame_index}.jpg"
+                            cv2.imwrite(output_path, annotated)
+                            logging.info(f"Detection saved to {output_path}")
+
+            # 사람이 탐지되지 않은 경우에도 탐지 결과 저장 (옵션일 때만)
+            if self.config.save_detection and not person_detected:
+                annotated = result.plot()
+                fallback_path = f"temp/detection_output_{frame_index}.jpg"
+                realtime_output = f"detection_output.jpg"
+                cv2.imwrite(fallback_path, annotated)
+                cv2.imwrite(realtime_output, annotated)
+                logging.info(f"Fallback detection saved to {fallback_path}")
+
+        # 탐지 실패 시 이전 중심 유지
+        if selected_center_x == -1 or selected_center_y == -1:
+            selected_center_x, selected_center_y = prev_center_x, prev_center_y
+
+        return selected_center_x, selected_center_y
 class TrajectorySmoothing:
     @staticmethod
     def centered_moving_average(data: List[float], window_size: int = 10) -> List[float]:
@@ -124,7 +156,7 @@ class TrajectorySmoothing:
         return avg_list
 
 class VideoProcessor:
-    def __init__(self, input_path: str, output_path: str, config: CropperConfig):
+    def __init__(self, input_path: str, output_path: str, job_status: dict, jobid: str, config: CropperConfig):
         self.input_path = input_path
         self.output_path = output_path
         self.config = config
@@ -135,15 +167,23 @@ class VideoProcessor:
         self.frame_width = 0
         self.frame_height = 0
         self.fps = 0
+        self.job_status = job_status
+        self.job_id = jobid
         # self.profiler = Profiler()
-        
         
     def _init_video_capture(self):
         self.cap = cv2.VideoCapture(self.input_path)
         self.frame_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.frame_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-        
+        self.job_status[self.job_id] = {
+            "status": "processing",
+            "progress": 0,
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "input_file": self.input_path,
+            "output_file": self.output_path,
+        }
     def _crop_frame(self, frame: np.ndarray, center_x: float, center_y: float, 
                    w_margin: float, h_margin: float) -> np.ndarray:
         frame_height, frame_width = frame.shape[:2]
@@ -191,10 +231,11 @@ class VideoProcessor:
             if not ret:
                 break
                 
-            if frame_count % self.config.sampling_rate_default == 0:
-                center_x, center_y = detector.detect_person(frame, pre_center_x, pre_center_y)
+            if frame_count % self.config.sampling_rate_default == 0 or frame_count < 90:
+                center_x, center_y = detector.detect_person(frame, pre_center_x, pre_center_y, frame_count)
                 # self.profiler.log_memory_usage(f"After detection frame {frame_count}")
-                
+            
+            # If no person detected, use previous center(ceter of the frame)
             if center_x == -1 or center_y == -1:
                 center_x, center_y = self.frame_width // 2, self.frame_height // 2
                 
@@ -205,8 +246,10 @@ class VideoProcessor:
             if frame_count % 100 == 0:
                 logging.info(f"Processing frame: {frame_count}")
                 
+                
+            progress = int((frame_count / self.total_frames) * 50) 
+            self.job_status[self.job_id]["progress"] = min(progress, 50)
             frame_count += 1
-            
         self.cap.release()
         
         # first_pass_metrics = self.profiler.stop()
@@ -221,14 +264,36 @@ class VideoProcessor:
         smoothed_x = TrajectorySmoothing.centered_moving_average(self.center_x_list)
         smoothed_y = TrajectorySmoothing.centered_moving_average(self.center_y_list)
         
+        # Add Gaussian noise to the smoothed trajectories
+        noise_std = 0.0001 * (self.frame_width + self.frame_height) / 2
+        smoothed_x = np.array(smoothed_x) + np.random.normal(0, noise_std, len(smoothed_x))
+        smoothed_y = np.array(smoothed_y) + np.random.normal(0, noise_std, len(smoothed_y))
+        smoothed_x = np.clip(smoothed_x, 0, self.frame_width - 1)
+        smoothed_y = np.clip(smoothed_y, 0, self.frame_height - 1)
+        logging.info(f"Trajectory smoothing completed in {time.time() - start_time:.2f} seconds")
+        logging.info(f"Total frames processed: {frame_count}")
+        
+        # Update job status
+        self.job_status[self.job_id]["progress"] = 10
+        
+        # float Nan check in w_margin_list and h_margin_list
+        if not detector.w_margin_list or not detector.h_margin_list:
+            logging.warning("No valid margins detected. Using default margins.")
+            detector.w_margin_list = [self.frame_width // 4]
+            detector.h_margin_list = [self.frame_height // 4]
+        if np.isnan(detector.w_margin_list).any() or np.isnan(detector.h_margin_list).any():
+            logging.warning("NaN values found in margins. Using default margins.")
+            detector.w_margin_list = [self.frame_width // 4]
+            detector.h_margin_list = [self.frame_height // 4]
+        
         # Calculate margins
         w_margin = int(np.mean(detector.w_margin_list))
         h_margin = int(np.mean(detector.h_margin_list))
         
         # Ensure minimum margins
-        if w_margin < self.frame_width//3 or h_margin < self.frame_height//3:
-            w_margin = self.frame_width//3
-            h_margin = self.frame_height//3
+        if w_margin < self.frame_width//4 or h_margin < self.frame_height//4:
+            w_margin = self.frame_width//4
+            h_margin = self.frame_height//4
             
         if self.config.square_mode:
             margin = max(w_margin, h_margin)
@@ -237,7 +302,7 @@ class VideoProcessor:
         # Second pass: Crop and save frames
         self.cap = cv2.VideoCapture(self.input_path)
         frame_count = 0
-        
+        total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if not ret:
@@ -253,6 +318,8 @@ class VideoProcessor:
                 logging.info(f"Cropping frame: {frame_count}")
                 # self.profiler.log_memory_usage(f"After cropping frame {frame_count}")
                 
+            progress = int((frame_count / self.total_frames) * 30) + 50
+            self.job_status[self.job_id]["progress"] = min(progress, 80)
             frame_count += 1
             
         self.cap.release()
@@ -267,7 +334,7 @@ class VideoProcessor:
         # self.profiler.start()
         self._save_video()
 
-        return True
+        # return True
         # save_metrics = self.profiler.stop()
         
         logging.info("\nVideo saving metrics:")
@@ -276,21 +343,30 @@ class VideoProcessor:
         # logging.info(f"Peak memory: {save_metrics['peak_memory']:.2f} MB")
         
     def _save_video(self):
+
+        self.job_status[self.job_id]["status"] = "converting"
+
         clip = ImageSequenceClip(self.frames, fps=self.fps)
-        
         # Add audio
         try:
             audio = VideoFileClip(self.input_path).audio
             clip = clip.set_audio(audio)
         except Exception as e:
             logging.warning(f"Could not add audio: {str(e)}")
-            
+        
+        self.job_status[self.job_id]["progress"] = 90
+        
         clip.write_videofile(
             self.output_path, 
             codec='libx264',
             audio_codec='aac',
             verbose=False
         )
+            
+        # 작업 완료
+        self.job_status[self.job_id]["status"] = "completed"
+        self.job_status[self.job_id]["progress"] = 100
+        self.job_status[self.job_id]["output_file"] = self.output_path
         logging.info(f"Video saved to: {self.output_path}")
         
 
@@ -318,8 +394,7 @@ def main():
     cropper.process_video(args.input, args.output)
 
 # Initialize configuration
-config = CropperConfig(model_version=8)
-
+config = CropperConfig(model_version=11)
 # Create and setup video cropper
 cropper = VideoCropper(config)
 cropper.load_model()
