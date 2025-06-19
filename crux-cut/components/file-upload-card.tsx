@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Progress } from "@/components/ui/progress"
 import { Upload, FileVideo, CheckCircle, AlertCircle, Download } from "lucide-react"
 
-const url = "https://ea6c-121-137-56-123.ngrok-free.app"
+const url = "https://bdfa-121-137-56-123.ngrok-free.app"
 
 interface JobStatus {
   status: "queued" | "processing" | "completed" | "failed" |  "converting"
