@@ -13,3 +13,8 @@ output/*
 **/__pycache__
 scripts/__pycache__
 demo_v002/app/__pycache__
+
+# Frontend node_modules
+crux-cut/node_modules
+crux-cut/.next
+crux-cut/.env.local
