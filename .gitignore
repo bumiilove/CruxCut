@@ -1,8 +1,9 @@
 
-# Ignore all files in the processed, temp, and upload directories
+# Ignore all video files in the scripts (processed, temp, and upload directories)
 scripts/processed/*
 scripts/temp/*
-scripts/upload/*
+scripts/uploads/*
+scripts/climbing_videos/*
 
 # Ignore all files in the input and output directories
 input/*
