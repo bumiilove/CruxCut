@@ -45,7 +45,7 @@ class VideoCropper:
         
     def load_model(self):
         if self.config.model_version == 8:
-            self.model = YOLO("yolov8n.pt")
+            self.model = YOLO("yolov8s.pt")
         elif self.config.model_version == 5:
             self.model = YOLO("yolov5s.pt")
             self.model.conf = self.config.confidence_threshold
@@ -55,7 +55,7 @@ class VideoCropper:
         
         self.model.fuse()
         self.model.to(self.device)
-        self.model.to("cpu")
+        #self.model.to("cpu")
         self.detector = ObjectDetector(self.model, self.config)
         
     def process_video(self, input_path: str, output_path: str, job_status: dict, jobid: str) -> bool:
@@ -129,6 +129,7 @@ class ObjectDetector:
                             output_path = f"temp/person_detected_{frame_index}.jpg"
                             cv2.imwrite(output_path, annotated)
                             logging.info(f"Detection saved to {output_path}")
+                            img = annotated
 
             # 사람이 탐지되지 않은 경우에도 탐지 결과 저장 (옵션일 때만)
             if self.config.save_detection and not person_detected:
@@ -138,12 +139,13 @@ class ObjectDetector:
                 cv2.imwrite(fallback_path, annotated)
                 cv2.imwrite(realtime_output, annotated)
                 logging.info(f"Fallback detection saved to {fallback_path}")
+                img = annotated
 
         # 탐지 실패 시 이전 중심 유지
         if selected_center_x == -1 or selected_center_y == -1:
             selected_center_x, selected_center_y = prev_center_x, prev_center_y
 
-        return selected_center_x, selected_center_y
+        return selected_center_x, selected_center_y, img
 class TrajectorySmoothing:
     @staticmethod
     def centered_moving_average(data: List[float], window_size: int = 10) -> List[float]:
@@ -220,6 +222,8 @@ class VideoProcessor:
         logging.info(f"Processing video: {self.input_path}")
         logging.info(f"Frame size: {self.frame_width}x{self.frame_height}, FPS: {self.fps}")
         
+        os.makedirs(f"temp/{self.job_id}", exist_ok=True)
+        
         pre_center_x, pre_center_y = -1, -1
         frame_count = 0
         start_time = time.time()
@@ -232,9 +236,9 @@ class VideoProcessor:
                 break
                 
             if frame_count % self.config.sampling_rate_default == 0 or frame_count < 90:
-                center_x, center_y = detector.detect_person(frame, pre_center_x, pre_center_y, frame_count)
+                center_x, center_y, img = detector.detect_person(frame, pre_center_x, pre_center_y, frame_count)
                 # self.profiler.log_memory_usage(f"After detection frame {frame_count}")
-            
+                cv2.imwrite(f"temp/{self.job_id}/detection_output_{frame_count}.jpg", img)
             # If no person detected, use previous center(ceter of the frame)
             if center_x == -1 or center_y == -1:
                 center_x, center_y = self.frame_width // 2, self.frame_height // 2
@@ -274,7 +278,7 @@ class VideoProcessor:
         logging.info(f"Total frames processed: {frame_count}")
         
         # Update job status
-        self.job_status[self.job_id]["progress"] = 10
+        #self.job_status[self.job_id]["progress"] = 10
         
         # float Nan check in w_margin_list and h_margin_list
         if not detector.w_margin_list or not detector.h_margin_list:
@@ -318,7 +322,7 @@ class VideoProcessor:
                 logging.info(f"Cropping frame: {frame_count}")
                 # self.profiler.log_memory_usage(f"After cropping frame {frame_count}")
                 
-            progress = int((frame_count / self.total_frames) * 30) + 50
+            progress = int((frame_count / self.total_frames) * 50) + 50
             self.job_status[self.job_id]["progress"] = min(progress, 80)
             frame_count += 1
             
