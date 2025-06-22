@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Progress } from "@/components/ui/progress"
 import { Upload, FileVideo, CheckCircle, AlertCircle, Download } from "lucide-react"
 
-const url = "https://bdfa-121-137-56-123.ngrok-free.app"
+const url = "https://d532-182-227-18-162.ngrok-free.app"
 
 interface JobStatus {
   status: "queued" | "processing" | "completed" | "failed" |  "converting"
@@ -39,7 +39,7 @@ export function FileUploadCard() {
       "video/*": [".mp4", ".mov", ".avi", ".mkv"],
     },
     maxFiles: 1,
-    maxSize: 2 * 1024 * 1024 * 1024, // 2GB
+    maxSize: 1 * 1024 * 1024 * 1024, // 2GB
   })
 
 
@@ -167,7 +167,7 @@ export function FileUploadCard() {
       case "processing":
         return "AI가 영상을 분석하고 편집 중입니다..."
       case "completed":
-        return "처리 완료! 다운로드할 수 있습니다."
+        return "처리 완료! 다운로드 버튼을 누른 후 기다려주세요."
       case "converting":
         return "영상 변환 중..."
       case "failed":
