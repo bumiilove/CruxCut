@@ -1,5 +1,7 @@
 "use client"
 
+// 이 컴포넌트는 사용자가 비디오 파일을 업로드하고 AI 기반 처리 후 다운로드할 수 있는 UI를 제공함
+
 import { useState, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
@@ -7,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Progress } from "@/components/ui/progress"
 import { Upload, FileVideo, CheckCircle, AlertCircle, Download } from "lucide-react"
 
-const url = "https://d532-182-227-18-162.ngrok-free.app"
+const url = "https://ringtail-striking-grossly.ngrok-free.app"
 
 interface JobStatus {
   status: "queued" | "processing" | "completed" | "failed" |  "converting"
@@ -17,13 +19,20 @@ interface JobStatus {
 }
 
 export function FileUploadCard() {
+  // 업로드할 파일 상태
   const [file, setFile] = useState<File | null>(null)
+  // 업로드 중인지 여부
   const [uploading, setUploading] = useState(false)
+  // 업로드 진행률 (0~100)
   const [uploadProgress, setUploadProgress] = useState(0)
+  // 백엔드에서 반환한 작업 ID
   const [jobId, setJobId] = useState<string | null>(null)
+  // 작업 상태 정보
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
+  // 에러 메시지
   const [error, setError] = useState<string | null>(null)
 
+  // 사용자가 드롭한 파일을 상태에 저장하고 초기화 처리
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       setFile(acceptedFiles[0])
@@ -42,7 +51,7 @@ export function FileUploadCard() {
     maxSize: 1 * 1024 * 1024 * 1024, // 2GB
   })
 
-
+  // 파일을 서버로 업로드하고 처리 요청을 전송하는 함수
   const uploadAndProcess = async () => {
     if (!file) return
 
@@ -91,6 +100,7 @@ export function FileUploadCard() {
     }
   }
 
+  // 주기적으로 백엔드로부터 작업 상태를 확인하는 함수
   const pollJobStatus = async (id: string) => {
     const statusUrl = `${url}/status/${id}`
     try {
@@ -110,7 +120,7 @@ export function FileUploadCard() {
       setJobStatus(status)
       // 작업이 완료되지 않았으면 계속 폴링
       if (status.status === "queued" || status.status === "processing") {
-        setTimeout(() => pollJobStatus(id), 500) // 2초마다 확인
+        setTimeout(() => pollJobStatus(id), 2000) // 2초마다 확인
       }
       if (status.status === "converting"){
         setTimeout(() => pollJobStatus(id), 5000) // 2초마다 확인
@@ -120,6 +130,7 @@ export function FileUploadCard() {
     }
   }
 
+  // 처리된 비디오를 서버에서 다운로드하여 사용자에게 저장하게 하는 함수
   const downloadProcessedVideo = async () => {
     if (!jobId) return
     const downloadUrl = `${url}/download/${jobId}`
@@ -150,6 +161,7 @@ export function FileUploadCard() {
     }
   }
 
+  // 업로드 상태를 초기화하는 함수
   const resetUpload = () => {
     setFile(null)
     setUploading(false)
@@ -158,6 +170,7 @@ export function FileUploadCard() {
     setError(null)
   }
 
+  // 작업 상태에 따라 사용자에게 보여줄 메시지를 반환
   const getStatusMessage = () => {
     if (!jobStatus) return ""
 
@@ -177,12 +190,14 @@ export function FileUploadCard() {
     }
   }
 
+  // 주요 UI 구성 요소 렌더링 (파일 업로드, 진행률, 결과 등)
   return (
     <Card className="w-full bg-gray-900 border-gray-800">
       <CardHeader>
         <CardTitle className="text-center text-2xl">영상 업로드 및 AI 처리</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* 파일이 선택되지 않은 상태: 드래그 앤 드롭 영역 표시 */}
         {!file && (
           <div
             {...getRootProps()}
@@ -205,6 +220,7 @@ export function FileUploadCard() {
           </div>
         )}
 
+        {/* 파일이 선택되고 업로드 전 상태: 파일명 및 취소 버튼 표시 */}
         {file && !jobStatus && (
           <div className="p-4 border border-gray-800 rounded-lg">
             <div className="flex items-center gap-3">
@@ -220,6 +236,7 @@ export function FileUploadCard() {
           </div>
         )}
 
+        {/* 업로드 진행 중일 때 진행률 표시 */}
         {uploading && (
           <div className="space-y-4">
             <div className="flex justify-between text-sm mb-1">
@@ -230,6 +247,7 @@ export function FileUploadCard() {
           </div>
         )}
 
+        {/* 작업 상태(jobStatus)가 존재할 때 진행 상황 또는 결과 표시 */}
         {jobStatus && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 border border-gray-800 rounded-lg">
@@ -258,6 +276,7 @@ export function FileUploadCard() {
           </div>
         )}
 
+        {/* 오류 발생 시 오류 메시지 표시 */}
         {error && (
           <div className="flex items-center gap-3 p-4 border border-red-900/50 bg-red-900/20 rounded-lg mt-4">
             <AlertCircle className="h-6 w-6 text-red-500" />
@@ -265,6 +284,7 @@ export function FileUploadCard() {
           </div>
         )}
       </CardContent>
+      {/* 하단 버튼 렌더링 조건 */}
       <CardFooter className="flex justify-center gap-4">
         {file && !jobStatus && !uploading && (
           <Button 
