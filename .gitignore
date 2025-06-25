@@ -19,3 +19,6 @@ demo_v002/app/__pycache__
 crux-cut/node_modules
 crux-cut/.next
 crux-cut/.env.local
+
+# Ignore .pt files
+*.pt
