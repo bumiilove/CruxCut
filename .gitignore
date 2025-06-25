@@ -5,9 +5,10 @@ scripts/temp
 scripts/uploads
 scripts/climbing_videos
 
-# Ignore all files in the input and output directories
+# Ignore all files in the input, output, experimetns directories
 input/*
 output/*
+exps/*
 
 # Ignore __pycache__ directories
 **/__pycache__

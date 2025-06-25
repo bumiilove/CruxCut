@@ -6,7 +6,7 @@ from moviepy.editor import *
 import numpy as np
 import mediapipe as mp
 import time
-from ultralytics import YOLO
+from ultralytics import YOLO, YOLOWorld
 import argparse
 from dataclasses import dataclass
 from typing import List, Tuple, Optional, Dict, Any
@@ -70,11 +70,14 @@ class VideoCropper:
             self.model.classes = [0]
         elif self.config.model_version == 11:
             self.model = YOLO("yolo11n.pt")
+        elif self.config.model_version == -1:
+            self.model = YOLOWorld("yolov8m-worldv2.pt")
+            self.model.set_classes(["person", "climber"])
         
         self.model.fuse()
         self.model.to(self.device)
         self.model.to("cpu")
-        logging.info(f"Loaded YOLO model version {self.config.model_version} on {self.device}")
+        logging.warning(f"Loaded YOLO model version {self.config.model_version} on {self.device}")
         self.detector = ObjectDetector(self.model, self.config)
         
     def process_video(self, input_path: str, output_path: str, job_status: Optional[dict]=None, jobid: Optional[str]=None) -> bool:
@@ -100,7 +103,7 @@ class ObjectDetector:
         self.w_margin_list: List[float] = []
         self.h_margin_list: List[float] = []
         
-    def detect_person(self, frame: np.ndarray, prev_center_x: float, prev_center_y: float, frame_index: int) -> Tuple[float, float]:
+    def detect_person(self, frame: np.ndarray, prev_center_x: float, prev_center_y: float, frame_index: int, job_id: str) -> Tuple[float, float]:
         """
         한 프레임에서 사람 객체를 탐지하여 중심 좌표와 마진을 반환합니다.
         - 중심에 가까운 사람 1명을 선택합니다.
@@ -120,7 +123,6 @@ class ObjectDetector:
 
         person_detected = False
         img = frame  # 기본값: 원본 프레임
-
         # 탐지 결과 반복
         for result in results:
             for bbox in result.boxes:
@@ -129,8 +131,8 @@ class ObjectDetector:
                 class_id = int(bbox.cls[0].item())
                 confidence = bbox.conf[0].item()
 
-                if class_id == 0:  # 사람이 탐지된 경우
-                    logging.info(f"Detected person at {(x1, y1, x2, y2)} with confidence {confidence}")
+                if class_id == 0 or class_id == 1:  # 사람이 탐지된 경우
+                    logging.warning(f"Detected person at {(x1, y1, x2, y2)} with confidence {confidence}")
 
                     # 사람 중심 좌표 계산
                     person_center_x = (x1 + x2) // 2
@@ -143,8 +145,8 @@ class ObjectDetector:
                     # 탐지 범위 바깥에 있거나 너무 튄 경우 무시
                     if not (focus_zone_start <= person_center_x <= focus_zone_end):
                         continue
-                    if dist_to_prev > frame_width // 4:
-                        continue
+                    # if dist_to_prev > frame_width // 4:
+                    #     continue
 
                     # 중심에 가장 가까운 사람 하나만 선택
                     if dist_to_frame_center < min_distance_to_center:
@@ -183,19 +185,19 @@ class ObjectDetector:
                               (selected_bbox[2], selected_bbox[3]), (0, 0, 255), 5)
                 cv2.putText(annotated, f"Person detected at ({selected_center_x}, {selected_center_y})", 
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                output_path = f"temp/{frame_index}_person_detected.jpg"
+                output_path = f"temp/{job_id}/{frame_index}_person_detected.jpg"
                 cv2.imwrite(output_path, annotated)
-                logging.info(f"Detection saved to {output_path}")
+                logging.warning(f"Detection saved to {output_path}")
             else:
                 # 사람이 탐지되지 않은 경우에도 탐지 결과 저장
                 cv2.putText(annotated, "No person detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                 # 탐지 결과 이미지 저장
-                output_path = f"temp/{frame_index}_no_person_detected.jpg"
+                output_path = f"temp/{job_id}/{frame_index}_no_person_detected.jpg"
                 cv2.imwrite(output_path, annotated)
-                logging.info(f"No person detection saved to {output_path}")
+                logging.warning(f"No person detection saved to {output_path}")
             realtime_output = f"detection_output.jpg"
             cv2.imwrite(realtime_output, annotated)
-            logging.info(f"Realtime detection saved to {realtime_output}")
+            logging.warning(f"Realtime detection saved to {realtime_output}")
 
         # 탐지 실패 시 이전 중심 유지
         if selected_center_x == -1 or selected_center_y == -1:
@@ -334,8 +336,8 @@ class VideoProcessor:
         5. 최종 비디오 저장
         """
         self._init_video_capture()
-        logging.info(f"Processing video: {self.input_path}")
-        logging.info(f"Frame size: {self.frame_width}x{self.frame_height}, FPS: {self.fps}")
+        logging.warning(f"Processing video: {self.input_path}")
+        logging.warning(f"Frame size: {self.frame_width}x{self.frame_height}, FPS: {self.fps}")
         
         os.makedirs(f"temp/{self.job_id}", exist_ok=True)
         
@@ -348,24 +350,24 @@ class VideoProcessor:
             ret, frame = self.cap.read()
             if not ret:
                 break
-            # 프레임 저장
-            cv2.imwrite(f"temp/{self.job_id}/frame_{frame_count}.jpg", frame)  # 프레임 저장
             
             # 초반 프레임은 탐지 간격을 짧게 설정, 이후에는 기본 탐지 간격(sampling_rate_default) 사용
             if  frame_count < 90 or frame_count % self.config.sampling_rate_default == 0:
-                center_x, center_y, detected_img = detector.detect_person(frame, pre_center_x, pre_center_y, frame_count)
-                # 탐지 결과 이미지 저장
-                cv2.imwrite(f"temp/{self.job_id}/detection_output_{frame_count}.jpg", detected_img)
+                center_x, center_y, detected_img = detector.detect_person(frame, pre_center_x, pre_center_y, frame_count, self.job_id)
             # 탐지 실패 시 프레임 중앙 사용
             if center_x == -1 or center_y == -1:
                 center_x, center_y = self.frame_width // 2, self.frame_height // 2
-            logging.info(f"center_x:{center_x}, center_y:{center_y}")
+            logging.warning(f"center_x:{center_x}, center_y:{center_y}")
             self.center_x_list.append(center_x)
             self.center_y_list.append(center_y)
             pre_center_x, pre_center_y = center_x, center_y
             
+            # 프레임 저장
+            if frame_count % 30 == 0:
+                cv2.imwrite(f"temp/{self.job_id}/frame_{frame_count}.jpg", frame)  
+            
             if frame_count % 100 == 0:
-                logging.info(f"Processing frame: {frame_count}")
+                logging.warning(f"Processing frame: {frame_count}")
                 
             # 진행률 갱신(1차 패스: 0~50%)
             progress = int((frame_count / self.total_frames) * 50) 
@@ -376,7 +378,7 @@ class VideoProcessor:
             frame_count += 1
         self.cap.release()
         print(len(detector.w_margin_list), len(detector.h_margin_list))
-        logging.info("\nFirst pass metrics:")
+        logging.warning("\nFirst pass metrics:")
         
         # 2. 중심점 트래젝토리 스무딩
         smoothed_x = TrajectorySmoothing.centered_moving_average(self.center_x_list)
@@ -391,8 +393,8 @@ class VideoProcessor:
         smoothed_y = np.array(smoothed_y) + np.random.normal(0, noise_std, len(smoothed_y))
         smoothed_x = np.clip(smoothed_x, 0, self.frame_width - 1)
         smoothed_y = np.clip(smoothed_y, 0, self.frame_height - 1)
-        logging.info(f"Trajectory smoothing completed in {time.time() - start_time:.2f} seconds")
-        logging.info(f"Total frames processed: {frame_count}")
+        logging.warning(f"Trajectory smoothing completed in {time.time() - start_time:.2f} seconds")
+        logging.warning(f"Total frames processed: {frame_count}")
         
         # 4. 마진 계산(탐지 결과 기반, 없으면 기본값 사용)
         if not detector.w_margin_list or not detector.h_margin_list:
@@ -421,8 +423,8 @@ class VideoProcessor:
             margin = max(w_margin, h_margin)
             w_margin = h_margin = margin
         
-        logging.info(f"Calculated margins: width={w_margin}, height={h_margin}")
-        logging.info("")
+        logging.warning(f"Calculated margins: width={w_margin}, height={h_margin}")
+        logging.warning("")
             
             
         if self.config.save_detection:
@@ -464,10 +466,13 @@ class VideoProcessor:
                 w_margin, h_margin
             )
             self.frames.append(cropped_frame)
+
             # 크롭된 프레임 저장
-            cv2.imwrite(f"temp/cropped_frame_{frame_count}.jpg", cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB))  
+            if frame_count % 30 == 0:
+                cv2.imwrite(f"temp/{self.job_id}/cropped_frame_{frame_count}.jpg", cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB))  
+            
             if frame_count % 100 == 0:
-                logging.info(f"Cropping frame: {frame_count}")
+                logging.warning(f"Cropping frame: {frame_count}")
                 # self.profiler.log_memory_usage(f"After cropping frame {frame_count}")
                 
             # 진행률 갱신(2차 패스: 50~100%)
@@ -480,12 +485,12 @@ class VideoProcessor:
             
         self.cap.release()
         
-        logging.info("\nSecond pass metrics:")
+        logging.warning("\nSecond pass metrics:")
         
         # 6. 최종 비디오 저장
         self._save_video()
 
-        logging.info("\nVideo saving metrics:")
+        logging.warning("\nVideo saving metrics:")
         
     def _save_video(self):
         """
@@ -514,7 +519,16 @@ class VideoProcessor:
             self.job_status[self.job_id]["status"] = "completed"
             self.job_status[self.job_id]["progress"] = 100
             self.job_status[self.job_id]["output_file"] = self.output_path
-        logging.info(f"Video saved to: {self.output_path}")
+        logging.warning(f"Video saved to: {self.output_path}")
+
+
+
+# Global 변수로 CropperConfig와 VideoCropper 인스턴스 생성
+# Initialize configuration
+config = CropperConfig(model_version=11, save_detection=True)
+# Create and setup video cropper
+cropper = VideoCropper(config)
+cropper.load_model()
 
 def main():
     """
@@ -534,22 +548,47 @@ def main():
     )
     
     # 설정 초기화
-    config = CropperConfig(model_version=args.version)
-    
+    config.model_version = args.version   
+    config.save_detection = True  # 탐지 이미지 저장 여부
+
     # VideoCropper 생성 및 모델 로드
     cropper = VideoCropper(config)
     cropper.load_model()
     
     # 비디오 처리 실행
-    cropper.process_video(args.input, args.output)
+    # cropper.process_video(args.input, args.output, jobid = args.input.split('/')[-1].split('.')[0])
+    
+def experimental_main():
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', '-v', type=int, default=11, help='YOLO version (5 or 8 or 11)')
+    args = parser.parse_args()
+    
+    # 로깅 설정
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    
+    # 설정 초기화
+    config.model_version = args.version   
+    config.save_detection = True  # 탐지 이미지 저장 여부
 
-# # Global 변수로 CropperConfig와 VideoCropper 인스턴스 생성
-# # Initialize configuration
-# config = CropperConfig(model_version=11)
-# # Create and setup video cropper
-# cropper = VideoCropper(config)
-# cropper.load_model()
+    # VideoCropper 생성 및 모델 로드
+    cropper = VideoCropper(config)
+    cropper.load_model()
+    
+    input_dir = 'uploads'
+    output_dir = 'processed'
+    
+    input_path_list = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(('.mp4', '.avi', '.mov'))]
+    for input_path in input_path_list:
+        output_path = os.path.join(output_dir, f"{os.path.basename(input_path).split('.')[0]}_processed.mp4")
+        logging.warning(f"Processing video: {input_path} -> {output_path}")
+        cropper.process_video(input_path, output_path, jobid=os.path.basename(input_path).split('.')[0])
+        logging.warning(f"Video processing completed: {output_path}")
 
 
 if __name__ == '__main__':
-    main() 
+    # main() 
+    experimental_main()
