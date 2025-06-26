@@ -594,14 +594,15 @@ def experimental_main():
     config.model_version = args.version
     config.margin_ratio = 2.0
     config.save_detection = True
+    config.square_mode = False
 
     # VideoCropper 생성 및 모델 로드
     cropper.config = config
     cropper.load_model()
     
-    input_dir = 'uploads'
-    output_dir = 'processed'
-    temp_dir = 'temp'
+    input_dir = '20_up'
+    output_dir = '20_pr'
+    temp_dir = '20_tmp'
     
     if not os.path.exists(input_dir):
         os.makedirs(input_dir)
