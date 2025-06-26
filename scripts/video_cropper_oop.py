@@ -63,14 +63,26 @@ class VideoCropper:
         YOLO 모델을 설정값에 따라 불러오고, ObjectDetector를 초기화합니다.
         """
         if self.config.model_version == 8:
+            if self.model is not None:
+                logging.warning("YOLO model already loaded. Skipping reload.")
+                return
             self.model = YOLO("yolov8s.pt")
         elif self.config.model_version == 5:
+            if self.model is not None:
+                logging.warning("YOLO model already loaded. Skipping reload.")
+                return
             self.model = YOLO("yolov5s.pt")
             self.model.conf = self.config.confidence_threshold
             self.model.classes = [0]
         elif self.config.model_version == 11:
-            self.model = YOLO("yolo11n.pt")
+            if self.model is not None:
+                logging.warning("YOLO model already loaded. Skipping reload.")
+                return
+            self.model = YOLO("yolo11s.pt")
         elif self.config.model_version == -1:
+            if self.model is not None:
+                logging.warning("YOLO model already loaded. Skipping reload.")
+                return
             self.model = YOLOWorld("yolov8m-worldv2.pt")
             self.model.set_classes(["person", "climber"])
         
@@ -158,11 +170,14 @@ class ObjectDetector:
                         # 마진 계산 및 저장
                         width_margin = ((x2 - x1) * self.config.margin_ratio) // 2
                         height_margin = ((y2 - y1) * self.config.margin_ratio) // 2
-                        self.w_margin_list.append(width_margin)
-                        self.h_margin_list.append(height_margin)
 
                         person_detected = True
                         
+        if person_detected:
+            # 마진 리스트에 추가
+            self.w_margin_list.append(width_margin)
+            self.h_margin_list.append(height_margin)
+
         # 옵션에 따라 탐지 이미지 저장
         if self.config.save_detection:
             annotated = result.plot()
@@ -223,7 +238,7 @@ class TrajectorySmoothing:
             avg_list.append(avg)
         return avg_list
     
-    def KalmanFilter(self, data: List[float], process_variance: float = 1e-5, measurement_variance: float = 1e-1) -> List[float]:
+    def KalmanFilter(data: List[float], process_variance: float = 1e-5, measurement_variance: float = 1e-1) -> List[float]:
         """
         칼만 필터를 적용하여 좌표의 노이즈를 제거합니다.
         """
@@ -377,7 +392,6 @@ class VideoProcessor:
             # self.profiler.log_memory_usage(f"After processing frame {frame_count}")
             frame_count += 1
         self.cap.release()
-        print(len(detector.w_margin_list), len(detector.h_margin_list))
         logging.warning("\nFirst pass metrics:")
         
         # 2. 중심점 트래젝토리 스무딩
@@ -388,13 +402,15 @@ class VideoProcessor:
         # smoothed_y = TrajectorySmoothing.KalmanFilter(self.center_y_list)
         
         # 3. 스무딩 좌표에 가우시안 노이즈 추가(더 부드럽게)
-        noise_std = 0.0001 * (self.frame_width + self.frame_height) / 2
+        noise_std = 0.0005 * (self.frame_width + self.frame_height) / 2
         smoothed_x = np.array(smoothed_x) + np.random.normal(0, noise_std, len(smoothed_x))
         smoothed_y = np.array(smoothed_y) + np.random.normal(0, noise_std, len(smoothed_y))
         smoothed_x = np.clip(smoothed_x, 0, self.frame_width - 1)
         smoothed_y = np.clip(smoothed_y, 0, self.frame_height - 1)
         logging.warning(f"Trajectory smoothing completed in {time.time() - start_time:.2f} seconds")
         logging.warning(f"Total frames processed: {frame_count}")
+        
+        print(len(detector.w_margin_list), len(detector.h_margin_list))
         
         # 4. 마진 계산(탐지 결과 기반, 없으면 기본값 사용)
         if not detector.w_margin_list or not detector.h_margin_list:
@@ -424,8 +440,6 @@ class VideoProcessor:
             w_margin = h_margin = margin
         
         logging.warning(f"Calculated margins: width={w_margin}, height={h_margin}")
-        logging.warning("")
-            
             
         if self.config.save_detection:
             from matplotlib import pyplot as plt
@@ -440,18 +454,23 @@ class VideoProcessor:
             ax[1].set_title('Y Coordinate Smoothing')
             ax[1].legend()
             plt.tight_layout()
-            plt.savefig(f"temp/Trajectory_plots.png")
-            
+            plt.savefig(f"temp/{self.job_id}/Trajectory_plots.png")
+            plt.clf()
+
             # 마진 리스트 시각화
             fig, ax = plt.subplots(2, 1, figsize=(8, 4))
             ax[0].plot(detector.w_margin_list, label='Width Margin', alpha=0.5)    
             ax[1].plot(detector.h_margin_list, label='Height Margin', alpha=0.5)
-            ax[0].set_title('Width Margin Over Frames')
-            ax[1].set_title('Height Margin Over Frames')
+            ax[0].axhline(w_margin, 0, len(detector.w_margin_list), color='red', linestyle='--', label='Fixed Margin')
+            ax[1].axhline(h_margin, 0, len(detector.h_margin_list), color='red', linestyle='--', label='Fixed Margin')
+            ax[0].set_title(f'Width Margin Over Frames (fixed: {w_margin})')
+            ax[1].set_title(f'Height Margin Over Frames(fixed: {h_margin})')
             ax[0].legend()
             ax[1].legend()
             plt.tight_layout()
-            plt.savefig(f"temp/Margin_plots.png")
+            plt.savefig(f"temp/{self.job_id}/Margin_plots.png")
+            plt.close(fig)
+            plt.clf()
             
         # 5. 두 번째 패스: 스무딩된 좌표로 프레임 크롭 및 저장
         self.cap = cv2.VideoCapture(self.input_path)
@@ -522,7 +541,6 @@ class VideoProcessor:
         logging.warning(f"Video saved to: {self.output_path}")
 
 
-
 # Global 변수로 CropperConfig와 VideoCropper 인스턴스 생성
 # Initialize configuration
 config = CropperConfig(model_version=11, save_detection=True)
@@ -559,6 +577,8 @@ def main():
     # cropper.process_video(args.input, args.output, jobid = args.input.split('/')[-1].split('.')[0])
     
 def experimental_main():
+        
+    global config, cropper
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', '-v', type=int, default=11, help='YOLO version (5 or 8 or 11)')
@@ -570,18 +590,28 @@ def experimental_main():
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
-    # 설정 초기화
-    config.model_version = args.version   
-    config.save_detection = True  # 탐지 이미지 저장 여부
+    # 실험 config 초기화
+    config.model_version = args.version
+    config.margin_ratio = 2.0
+    config.save_detection = True
 
     # VideoCropper 생성 및 모델 로드
-    cropper = VideoCropper(config)
+    cropper.config = config
     cropper.load_model()
     
     input_dir = 'uploads'
     output_dir = 'processed'
+    temp_dir = 'temp'
     
+    if not os.path.exists(input_dir):
+        os.makedirs(input_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
     input_path_list = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(('.mp4', '.avi', '.mov'))]
+    # 입력 경로 내의 모든 비디오 파일에 대해 처리 실행
     for input_path in input_path_list:
         output_path = os.path.join(output_dir, f"{os.path.basename(input_path).split('.')[0]}_processed.mp4")
         logging.warning(f"Processing video: {input_path} -> {output_path}")
