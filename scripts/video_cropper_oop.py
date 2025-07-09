@@ -369,6 +369,7 @@ class VideoProcessor:
             # 초반 프레임은 탐지 간격을 짧게 설정, 이후에는 기본 탐지 간격(sampling_rate_default) 사용
             if  frame_count < 90 or frame_count % self.config.sampling_rate_default == 0:
                 center_x, center_y, detected_img = detector.detect_person(frame, pre_center_x, pre_center_y, frame_count, self.job_id)
+                logging.warning(f"center_x:{center_x}, center_y:{center_y}")
             # 탐지 실패 시 프레임 중앙 사용
             if center_x == -1 or center_y == -1:
                 center_x, center_y = self.frame_width // 2, self.frame_height // 2
@@ -543,7 +544,7 @@ class VideoProcessor:
 
 # Global 변수로 CropperConfig와 VideoCropper 인스턴스 생성
 # Initialize configuration
-config = CropperConfig(model_version=11, save_detection=True)
+config = CropperConfig(model_version=11, save_detection=False, square_mode=False, margin_ratio=3.0, sampling_rate_default=15)
 # Create and setup video cropper
 cropper = VideoCropper(config)
 cropper.load_model()

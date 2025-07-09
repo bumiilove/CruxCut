@@ -5,6 +5,8 @@ scripts/temp
 scripts/uploads
 scripts/climbing_videos
 
+scripts/detection_output.jpg
+
 # Ignore all files in the input, output, experimetns directories
 input/*
 output/*
