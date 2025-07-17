@@ -288,7 +288,8 @@ export function FileUploadCard() {
     return (
       <Card className="w-full bg-gray-900 border-gray-800 p-12 text-center">
         <p className="text-xl text-gray-300">⚠️ 서비스 준비 중입니다.</p>
-        <p className="text-sm text-gray-500 mt-2">서비스가 곧 지원될 예정입니다. 잠시 후 다시 시도해주세요. 문의: Instagram: @climb_bom</p>
+        <p className="text-sm text-gray-500 mt-2">서비스가 곧 지원될 예정입니다. 잠시 후 다시 시도해주세요.</p>
+        <p className="text-sm text-gray-600 mt-2">문의: Instagram: @climb_bom</p>
       </Card>
     )
   }
