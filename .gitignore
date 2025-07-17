@@ -11,11 +11,11 @@ scripts/detection_output.jpg
 input/*
 output/*
 exps/*
+demo_v002/*
 
 # Ignore __pycache__ directories
 **/__pycache__
 scripts/__pycache__
-demo_v002/app/__pycache__
 
 # Frontend node_modules
 crux-cut/node_modules

@@ -126,6 +126,10 @@ class VideoProcessor:
             job_status[job_id]["status"] = "failed"
             job_status[job_id]["error"] = str(e)
 
+@app.get("/ping")
+def ping():
+    return {"message": "pong"}
+
 @app.post("/upload")
 async def upload_video(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """비디오 파일 업로드 및 처리 시작"""

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Optional, Dict, Any
 import logging
 # from profiler import Profiler
-import multiprocessing
+# import multiprocessing
 
 @dataclass
 class CropperConfig:
@@ -62,33 +62,22 @@ class VideoCropper:
         """
         YOLO 모델을 설정값에 따라 불러오고, ObjectDetector를 초기화합니다.
         """
-        if self.config.model_version == 8:
-            if self.model is not None:
-                logging.warning("YOLO model already loaded. Skipping reload.")
-                return
+        if self.model is not None:
+            logging.warning("YOLO model already loaded. Skipping reload.")
+        elif self.config.model_version == 8:
             self.model = YOLO("yolov8s.pt")
         elif self.config.model_version == 5:
-            if self.model is not None:
-                logging.warning("YOLO model already loaded. Skipping reload.")
-                return
             self.model = YOLO("yolov5s.pt")
             self.model.conf = self.config.confidence_threshold
             self.model.classes = [0]
         elif self.config.model_version == 11:
-            if self.model is not None:
-                logging.warning("YOLO model already loaded. Skipping reload.")
-                return
             self.model = YOLO("yolo11s.pt")
         elif self.config.model_version == -1:
-            if self.model is not None:
-                logging.warning("YOLO model already loaded. Skipping reload.")
-                return
             self.model = YOLOWorld("yolov8m-worldv2.pt")
             self.model.set_classes(["person", "climber"])
-        
         self.model.fuse()
         self.model.to(self.device)
-        self.model.to("cpu")
+        # self.model.to("cpu")
         logging.warning(f"Loaded YOLO model version {self.config.model_version} on {self.device}")
         self.detector = ObjectDetector(self.model, self.config)
         
@@ -104,7 +93,7 @@ class VideoCropper:
 class ObjectDetector:
     """
     ObjectDetector 클래스
-    - YOLO 모델을 이용해 프레임에서 사람(클래스 0) 객체를 탐지합니다.
+    - YOLO 모델을 이용해 프레임에서 사람(클래스 0) 객체를 탐지합니다.`
     - 탐지된 중심점 좌표와 마진 정보를 기록합니다.
     """
     def __init__(self, model: YOLO, config: CropperConfig):
@@ -200,14 +189,14 @@ class ObjectDetector:
                               (selected_bbox[2], selected_bbox[3]), (0, 0, 255), 5)
                 cv2.putText(annotated, f"Person detected at ({selected_center_x}, {selected_center_y})", 
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                output_path = f"temp/{job_id}/{frame_index}_person_detected.jpg"
+                output_path = f"{temp_dir}/{job_id}/{frame_index}_person_detected.jpg"
                 cv2.imwrite(output_path, annotated)
                 logging.warning(f"Detection saved to {output_path}")
             else:
                 # 사람이 탐지되지 않은 경우에도 탐지 결과 저장
                 cv2.putText(annotated, "No person detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
                 # 탐지 결과 이미지 저장
-                output_path = f"temp/{job_id}/{frame_index}_no_person_detected.jpg"
+                output_path = f"{temp_dir}/{job_id}/{frame_index}_no_person_detected.jpg"
                 cv2.imwrite(output_path, annotated)
                 logging.warning(f"No person detection saved to {output_path}")
             realtime_output = f"detection_output.jpg"
@@ -354,11 +343,13 @@ class VideoProcessor:
         logging.warning(f"Processing video: {self.input_path}")
         logging.warning(f"Frame size: {self.frame_width}x{self.frame_height}, FPS: {self.fps}")
         
-        os.makedirs(f"temp/{self.job_id}", exist_ok=True)
+        os.makedirs(f"{temp_dir}/{self.job_id}", exist_ok=True)
         
         pre_center_x, pre_center_y = -1, -1
         frame_count = 0
         start_time = time.time()
+        
+        # self.cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
         
         # 1. 첫 번째 패스: 탐지 및 중심점 좌표 수집
         while self.cap.isOpened():
@@ -373,14 +364,13 @@ class VideoProcessor:
             # 탐지 실패 시 프레임 중앙 사용
             if center_x == -1 or center_y == -1:
                 center_x, center_y = self.frame_width // 2, self.frame_height // 2
-            logging.warning(f"center_x:{center_x}, center_y:{center_y}")
             self.center_x_list.append(center_x)
             self.center_y_list.append(center_y)
             pre_center_x, pre_center_y = center_x, center_y
             
             # 프레임 저장
             if frame_count % 30 == 0:
-                cv2.imwrite(f"temp/{self.job_id}/frame_{frame_count}.jpg", frame)  
+                cv2.imwrite(f"{temp_dir}/{self.job_id}/frame_{frame_count}.jpg", frame)  
             
             if frame_count % 100 == 0:
                 logging.warning(f"Processing frame: {frame_count}")
@@ -395,15 +385,13 @@ class VideoProcessor:
         self.cap.release()
         logging.warning("\nFirst pass metrics:")
         
+        smoother = TrajectorySmoothing()
         # 2. 중심점 트래젝토리 스무딩
         smoothed_x = TrajectorySmoothing.centered_moving_average(self.center_x_list)
         smoothed_y = TrajectorySmoothing.centered_moving_average(self.center_y_list)
         
-        # smoothed_x = TrajectorySmoothing.KalmanFilter(self.center_x_list)
-        # smoothed_y = TrajectorySmoothing.KalmanFilter(self.center_y_list)
-        
         # 3. 스무딩 좌표에 가우시안 노이즈 추가(더 부드럽게)
-        noise_std = 0.0005 * (self.frame_width + self.frame_height) / 2
+        noise_std = 0.0001 * (self.frame_width + self.frame_height) / 2
         smoothed_x = np.array(smoothed_x) + np.random.normal(0, noise_std, len(smoothed_x))
         smoothed_y = np.array(smoothed_y) + np.random.normal(0, noise_std, len(smoothed_y))
         smoothed_x = np.clip(smoothed_x, 0, self.frame_width - 1)
@@ -442,45 +430,48 @@ class VideoProcessor:
         
         logging.warning(f"Calculated margins: width={w_margin}, height={h_margin}")
             
-        if self.config.save_detection:
-            from matplotlib import pyplot as plt
-            # 스무딩된 좌표 시각화
-            fig, ax = plt.subplots(2, 1, figsize=(12, 6))
-            ax[0].plot(self.center_x_list, label='Original X', alpha=0.5)
-            ax[0].plot(smoothed_x, label='Smoothed X', color='orange')
-            ax[0].set_title('X Coordinate Smoothing')
-            ax[0].legend()
-            ax[1].plot(self.center_y_list, label='Original Y', alpha=0.5)
-            ax[1].plot(smoothed_y, label='Smoothed Y', color='orange')
-            ax[1].set_title('Y Coordinate Smoothing')
-            ax[1].legend()
-            plt.tight_layout()
-            plt.savefig(f"temp/{self.job_id}/Trajectory_plots.png")
-            plt.clf()
+        # if self.config.save_detection:
+        #     from matplotlib import pyplot as plt
+        #     # 스무딩된 좌표 시각화
+        #     fig, ax = plt.subplots(2, 1, figsize=(12, 6))
+        #     ax[0].plot(self.center_x_list, label='Original X', alpha=0.5)
+        #     ax[0].plot(smoothed_x, label='Smoothed X', color='orange')
+        #     ax[0].set_title('X Coordinate Smoothing')
+        #     ax[0].legend()
+        #     ax[1].plot(self.center_y_list, label='Original Y', alpha=0.5)
+        #     ax[1].plot(smoothed_y, label='Smoothed Y', color='orange')
+        #     ax[1].set_title('Y Coordinate Smoothing')
+        #     ax[1].legend()
+        #     plt.tight_layout()
+        #     plt.savefig(f"{temp_dir}/{self.job_id}/Trajectory_plots.png")
+        #     plt.clf()
 
-            # 마진 리스트 시각화
-            fig, ax = plt.subplots(2, 1, figsize=(8, 4))
-            ax[0].plot(detector.w_margin_list, label='Width Margin', alpha=0.5)    
-            ax[1].plot(detector.h_margin_list, label='Height Margin', alpha=0.5)
-            ax[0].axhline(w_margin, 0, len(detector.w_margin_list), color='red', linestyle='--', label='Fixed Margin')
-            ax[1].axhline(h_margin, 0, len(detector.h_margin_list), color='red', linestyle='--', label='Fixed Margin')
-            ax[0].set_title(f'Width Margin Over Frames (fixed: {w_margin})')
-            ax[1].set_title(f'Height Margin Over Frames(fixed: {h_margin})')
-            ax[0].legend()
-            ax[1].legend()
-            plt.tight_layout()
-            plt.savefig(f"temp/{self.job_id}/Margin_plots.png")
-            plt.close(fig)
-            plt.clf()
-            
+        #     # 마진 리스트 시각화
+        #     fig, ax = plt.subplots(2, 1, figsize=(8, 4))
+        #     ax[0].plot(detector.w_margin_list, label='Width Margin', alpha=0.5)    
+        #     ax[1].plot(detector.h_margin_list, label='Height Margin', alpha=0.5)
+        #     ax[0].axhline(w_margin, 0, len(detector.w_margin_list), color='red', linestyle='--', label='Fixed Margin')
+        #     ax[1].axhline(h_margin, 0, len(detector.h_margin_list), color='red', linestyle='--', label='Fixed Margin')
+        #     ax[0].set_title(f'Width Margin Over Frames (fixed: {w_margin})')
+        #     ax[1].set_title(f'Height Margin Over Frames(fixed: {h_margin})')
+        #     ax[0].legend()
+        #     ax[1].legend()
+        #     plt.tight_layout()
+        #     plt.savefig(f"{temp_dir}/{self.job_id}/Margin_plots.png")
+        #     plt.close(fig)
+        #     plt.clf()
+
         # 5. 두 번째 패스: 스무딩된 좌표로 프레임 크롭 및 저장
         self.cap = cv2.VideoCapture(self.input_path)
         frame_count = 0
+        
+        # self.cap.set(cv2.CAP_PROP_ORIENTATION_AUTO, 1)
+        
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if not ret:
                 break
-                
+
             cropped_frame = self._crop_frame(
                 frame, smoothed_x[frame_count], smoothed_y[frame_count], 
                 w_margin, h_margin
@@ -489,7 +480,7 @@ class VideoProcessor:
 
             # 크롭된 프레임 저장
             if frame_count % 30 == 0:
-                cv2.imwrite(f"temp/{self.job_id}/cropped_frame_{frame_count}.jpg", cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB))  
+                cv2.imwrite(f"{temp_dir}/{self.job_id}/cropped_frame_{frame_count}.jpg", cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB))  
             
             if frame_count % 100 == 0:
                 logging.warning(f"Cropping frame: {frame_count}")
@@ -531,9 +522,12 @@ class VideoProcessor:
             self.output_path, 
             codec='libx264',
             audio_codec='aac',
-            verbose=False
+            verbose=False,
+            threads=8,
         )
-            
+        audio.close() if audio else None
+        clip.close() if clip else None
+
         # 작업 완료 상태 갱신
         if self.job_status is not None:
             self.job_status[self.job_id]["status"] = "completed"
@@ -548,6 +542,7 @@ config = CropperConfig(model_version=11, save_detection=False, square_mode=False
 # Create and setup video cropper
 cropper = VideoCropper(config)
 cropper.load_model()
+temp_dir = "temp"
 
 def main():
     """
@@ -579,7 +574,7 @@ def main():
     
 def experimental_main():
         
-    global config, cropper
+    global config, cropper, temp_dir
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', '-v', type=int, default=11, help='YOLO version (5 or 8 or 11)')
@@ -601,10 +596,13 @@ def experimental_main():
     cropper.config = config
     cropper.load_model()
     
-    input_dir = '20_up'
-    output_dir = '20_pr'
-    temp_dir = '20_tmp'
+    print(cropper.config)
     
+    input_dir = '../../Edge Case'
+    output_dir = '../../Edge Case_processed'
+    temp_dir = '../../Edge Case_temp'
+    cnt = 0
+
     if not os.path.exists(input_dir):
         os.makedirs(input_dir)
     if not os.path.exists(output_dir):
@@ -615,6 +613,9 @@ def experimental_main():
     input_path_list = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(('.mp4', '.avi', '.mov'))]
     # 입력 경로 내의 모든 비디오 파일에 대해 처리 실행
     for input_path in input_path_list:
+        cnt += 1
+        # if cnt < 20:
+        #     continue
         output_path = os.path.join(output_dir, f"{os.path.basename(input_path).split('.')[0]}_processed.mp4")
         logging.warning(f"Processing video: {input_path} -> {output_path}")
         cropper.process_video(input_path, output_path, jobid=os.path.basename(input_path).split('.')[0])
@@ -622,5 +623,6 @@ def experimental_main():
 
 
 if __name__ == '__main__':
+    # multiprocessing.set_start_method('spawn')
     # main() 
     experimental_main()
