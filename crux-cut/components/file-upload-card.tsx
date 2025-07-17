@@ -31,6 +31,8 @@ export function FileUploadCard() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   // 에러 메시지
   const [error, setError] = useState<string | null>(null)
+  // 백엔드 준비 상태 (Service Worker가 준비되었는지 여부)
+  const [backendReady, setBackendReady] = useState(false) 
 
   // Service Worker 및 Background Mode 추가
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false)
@@ -110,6 +112,29 @@ export function FileUploadCard() {
     maxFiles: 1,
     maxSize: 1 * 1024 * 1024 * 1024, // 1GB
   })
+
+  // 백엔드 서버 상태 확인
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const res = await fetch(`${url}/ping`, {  // ping 같은 간단한 endpoint 필요
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        })
+        if (res.ok) {
+          setBackendReady(true)
+        } else {
+          setBackendReady(false)
+        }
+      } catch (err) {
+        setBackendReady(false)
+      }
+    }
+
+    checkBackend()
+  }, [])
+
 
   // 파일을 서버로 업로드하고 처리 요청을 전송하는 함수
   const uploadAndProcess = async () => {
@@ -256,6 +281,16 @@ export function FileUploadCard() {
       default:
         return ""
     }
+  }
+
+  // 주요 UI 구성 요소 렌더링
+  if (!backendReady) {
+    return (
+      <Card className="w-full bg-gray-900 border-gray-800 p-12 text-center">
+        <p className="text-xl text-gray-300">⚠️ 서비스 준비 중입니다.</p>
+        <p className="text-sm text-gray-500 mt-2">서비스가 곧 지원될 예정입니다. 잠시 후 다시 시도해주세요. 문의: Instagram: @climb_bom</p>
+      </Card>
+    )
   }
 
   // 주요 UI 구성 요소 렌더링 (파일 업로드, 진행률, 결과 등)
