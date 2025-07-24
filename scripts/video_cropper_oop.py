@@ -385,7 +385,24 @@ class VideoProcessor:
         self.cap.release()
         logging.warning("\nFirst pass metrics:")
         
-        smoother = TrajectorySmoothing()
+        # frame 중앙 좌표
+        center_x_init = self.frame_width // 2
+        center_y_init = self.frame_height // 2
+
+        # 실제 중심값이 최초로 바뀐 시점 찾기
+        first_real_idx = None
+        for i, (x, y) in enumerate(zip(self.center_x_list, self.center_y_list)):
+            if x != center_x_init or y != center_y_init:
+                first_real_idx = i
+                break
+
+        if first_real_idx is not None and first_real_idx > 0:
+            real_x = self.center_x_list[first_real_idx]
+            real_y = self.center_y_list[first_real_idx]
+            # 앞부분을 실제 첫 탐지값으로 대체
+            self.center_x_list[:first_real_idx] = [real_x] * first_real_idx
+            self.center_y_list[:first_real_idx] = [real_y] * first_real_idx
+
         # 2. 중심점 트래젝토리 스무딩
         smoothed_x = TrajectorySmoothing.centered_moving_average(self.center_x_list)
         smoothed_y = TrajectorySmoothing.centered_moving_average(self.center_y_list)
@@ -598,9 +615,9 @@ def experimental_main():
     
     print(cropper.config)
     
-    input_dir = '../../Edge Case'
-    output_dir = '../../Edge Case_processed'
-    temp_dir = '../../Edge Case_temp'
+    input_dir = '../../crux_cut_exps/Edge Case'
+    output_dir = '../../crux_cut_exps/Edge Case_processed'
+    temp_dir = '../../crux_cut_exps/Edge Case_temp'
     cnt = 0
 
     if not os.path.exists(input_dir):
@@ -614,8 +631,8 @@ def experimental_main():
     # 입력 경로 내의 모든 비디오 파일에 대해 처리 실행
     for input_path in input_path_list:
         cnt += 1
-        # if cnt < 20:
-        #     continue
+        if cnt < 3:
+            continue
         output_path = os.path.join(output_dir, f"{os.path.basename(input_path).split('.')[0]}_processed.mp4")
         logging.warning(f"Processing video: {input_path} -> {output_path}")
         cropper.process_video(input_path, output_path, jobid=os.path.basename(input_path).split('.')[0])
