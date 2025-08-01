@@ -35,7 +35,8 @@ Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 �
 -> CruxCut은 여러분이 클라이밍 영상을 업로드만 하면, 자동으로 여러분을 따라다니는 영상을 편집해줍니다! 
 아래 영상은 **수동 편집의 번거로움**과 **CruxCut**을 통한 자동 편집의 편리함**을 비교하여 보여줍니다.
 
-https://github.com/user-attachments/assets/0e657222-9135-4f8e-a283-5046db546352
+
+ https://github.com/user-attachments/assets/0e657222-9135-4f8e-a283-5046db546352
 
 ## installation guide(requirements) -> Quick Tutorial
 To install and run this program locally, follow the steps below.
