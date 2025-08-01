@@ -1,4 +1,6 @@
-# 대표 이미지 (혹은 데모) 
+## 대표 이미지 라고 쓰긴 좀 그렇고 뭔가 적절한 제목, 아니면 랜딩 페이지 이미지를 제거하거나 다른 위치로 옮겨도 될듯
+
+<img src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
 
 # 배지
 <div align="center">
