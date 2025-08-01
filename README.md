@@ -1,3 +1,11 @@
+# 대표 이미지 (혹은 데모) 
+
+# 배지
+
+# 캐치프레이즈
+
+# 링크, QR
+
 # CruxCut
 + 이 프로젝트는 딥러닝 기반의 객체 검출 기술을 활용하여 실시간 등반자 중심의 프레임 편집과정을 자동화하고 효율성을 높이는 AI 편집 서비스입니다.
 # Introduction
@@ -17,6 +25,8 @@ Cruxcut가 어떻게 여러분의 클라이밍 영상을 혁신적으로 편집�
 아래 영상은 **수동 편집의 번거로움**과 **CruxCut**을 통한 자동 편집의 편리함**을 비교하여 보여줍니다.
 
 https://github.com/user-attachments/assets/0e657222-9135-4f8e-a283-5046db546352
+
+## installation guide(requirements)
 
 ## Contact us
 권경범 사진 담당역할 이메일
