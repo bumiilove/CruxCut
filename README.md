@@ -27,12 +27,6 @@
 -   **다양한 영상 포맷 지원**: MP4, AVI 등 주요 영상 포맷을 지원하여 사용성을 높입니다.
 
 
-https://github.com/user-attachments/assets/e351ccf6-3bb7-400a-aa7f-5f02c1c28c39
-
-
-
-
-
 # Demo
 Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 직접 확인해보세요!
 -> CruxCut은 여러분이 클라이밍 영상을 업로드만 하면, 자동으로 여러분을 따라다니는 영상을 편집해줍니다! 
