@@ -1,8 +1,8 @@
 ## 대표 이미지 라고 쓰긴 좀 그렇고 뭔가 적절한 제목, 아니면 랜딩 페이지 이미지를 제거하거나 다른 위치로 옮겨도 될듯
 
 <img src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
-
-# 배지
+<br><br/>
+<!--# 뱃지-->
 <div align="center">
 <img src=https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54>
 <img src=https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white>
@@ -15,6 +15,7 @@
 
 # CruxCut
 이 프로젝트는 딥러닝 기반의 객체 검출 기술을 활용하여 실시간 등반자 중심의 프레임 편집과정을 자동화하고 효율성을 높이는 AI 편집 서비스입니다.
+-> CruxCut AI는 등반 영상에서 여러분들에게 포커스된 영상을 자동으로 생성해주는 클라이밍 영상 자동 편집 AI 서비스 입니다.
 
 # Introduction
  클라이밍의 짜릿한 순간들은 SNS를 통해 공유될 때 더욱 빛을 발합니다. 생동감 넘치는 등반 영상을 남기고 싶지만, 촬영을 부탁하거나 복잡한 편집 프로그램으로 씨름하는 과정은 때로 즐거움을 방해하기도 합니다.
