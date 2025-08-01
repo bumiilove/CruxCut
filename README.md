@@ -27,7 +27,7 @@
 -   **다양한 영상 포맷 지원**: MP4, AVI 등 주요 영상 포맷을 지원하여 사용성을 높입니다.
 
 
-     ![동영상 설명](https://github.com/user-attachments/assets/e351ccf6-3bb7-400a-aa7f-5f02c1c28c39)
+https://github.com/user-attachments/assets/e351ccf6-3bb7-400a-aa7f-5f02c1c28c39
 
 
 
