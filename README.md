@@ -1,5 +1,7 @@
 ## 대표 이미지 라고 쓰긴 좀 그렇고 뭔가 적절한 제목, 아니면 랜딩 페이지 이미지를 제거하거나 다른 위치로 옮겨도 될듯
-
+# new demo
+![Image](https://github.com/user-attachments/assets/888a534d-6092-47c1-b20e-dae141e58009)
+어떤데~
 <img src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
 <br><br/>
 <!--# 뱃지-->
