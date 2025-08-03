@@ -4,7 +4,6 @@
 <img src=https://github.com/user-attachments/assets/888a534d-6092-47c1-b20e-dae141e58009>
 </p>
 
-어떤데~
 <img src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
 <br><br/>
 <!--# 뱃지-->
