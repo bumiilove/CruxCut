@@ -48,11 +48,12 @@ Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 �
 
 ## Quick guide
 
+### build
 To get started, install required python packages into your working directory
 ```shell
 pip install -r requirements.txt
 ```
-### quick guide
+### run
 run our crux-cut on your local network via:
 ```shell
 uvicorn main:app --reload --host 0.0.0.0 --port your_port
