@@ -48,6 +48,9 @@ Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 �
 
 ## installation guide(requirements) -> Quick Tutorial
 To install and run this program locally, follow the steps below.
+''' python
+pip install -r requirements.txt
+'''
 (pip install ...)
 
 
