@@ -1,7 +1,7 @@
 ## 대표 이미지 라고 쓰긴 좀 그렇고 뭔가 적절한 제목, 아니면 랜딩 페이지 이미지를 제거하거나 다른 위치로 옮겨도 될듯
-# new demo
+
 <p align="center">
-<img src=https://github.com/user-attachments/assets/888a534d-6092-47c1-b20e-dae141e58009>
+<img src=https://github.com/user-attachments/assets/1d91e491-1efc-4085-8d06-bb4f21ba3ef0>
 </p>
 
 <img src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
@@ -42,9 +42,9 @@ https://github.com/user-attachments/assets/70883931-d0d2-45bb-b744-eaf4c16f378f
 Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 직접 확인해보세요!
 -> CruxCut은 여러분이 클라이밍 영상을 업로드만 하면, 자동으로 여러분을 따라다니는 영상을 편집해줍니다! 
 아래 영상은 **수동 편집의 번거로움**과 **CruxCut**을 통한 자동 편집의 편리함**을 비교하여 보여줍니다.
-
-
- https://github.com/user-attachments/assets/0e657222-9135-4f8e-a283-5046db546352
+<p align="center">
+<img src=https://github.com/user-attachments/assets/888a534d-6092-47c1-b20e-dae141e58009>
+</p>
 
 ## Quick guide
 
