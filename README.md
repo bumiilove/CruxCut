@@ -21,8 +21,7 @@
 <img src=https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white>
 </div>
 
-# 바로 경험해보세요. 
-[👉 CruxCut 바로가기](https://crux-cut.vercel.app)
+### 바로 경험해보세요. [👉 CruxCut](https://crux-cut.vercel.app)
 
 # CruxCut
 CruxCut AI는 등반 영상에서 여러분들에게 포커스된 영상을 자동으로 생성해주는 클라이밍 영상 자동 편집 AI 서비스 입니다.
