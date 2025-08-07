@@ -13,7 +13,7 @@
 <img src=https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white>
 </div>
 
-# 캐치프레이즈
+# Catchphrase
 클릭 한 번으로 수동 편집을 자동화 – 긴 편집 과정을 즉석에서 단축하는 AI 클라이밍 영상 편집
 # 링크, QR
 
