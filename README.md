@@ -37,7 +37,7 @@ CruxCut AI는 등반 영상에서 여러분들에게 포커스된 영상을 자�
 
  (version2)본 프로젝트는 딥러닝 기반 객체 검출 기술을 활용하여, 영상 내 등반자를 자동으로 인식하고 중심 프레임을 선별함으로써, 실시간으로 등반 중심 장면만을 자동 추출·편집하는 AI 편집 서비스입니다.
 YOLO 기반의 경량화된 객체 검출 모델을 활용하여 등반자의 위치를 실시간으로 추적하며, 해당 정보는 불필요한 장면을 제거하고 하이라이트 중심으로 영상을 재구성하는 데 사용됩니다. 이로써 편집자는 보다 효율적이고 직관적으로 클라이밍 콘텐츠를 제작할 수 있으며, 수작업 편집 시간을 획기적으로 줄일 수 있습니다. 이 서비스는 스포츠 영상 자동화 편집의 첫걸음으로, 향후 다양한 액티비티 영상에도 적용 가능성을 지니고 있습니다.
-[![CruxCut tracks your move](http://img.youtube.com/vi/FbD5ZKpMjNA/maxresdefault.jpg)](https://youtu.be/FbD5ZKpMjNA?t=0s) 
+[![CruxCut tracks your move](https://img.youtube.com/vi/FbD5ZKpMjNA/maxresdefault.jpg)](https://www.youtube.com/shorts/FbD5ZKpMjNA) 
 
 ## 주요 기능
 
