@@ -1,11 +1,19 @@
-## 대표 이미지 라고 쓰긴 좀 그렇고 뭔가 적절한 제목, 아니면 랜딩 페이지 이미지를 제거하거나 다른 위치로 옮겨도 될듯
-
+<!--# 랜딩 페이지 배너-->
 <p align="center">
-<img src=https://github.com/user-attachments/assets/1d91e491-1efc-4085-8d06-bb4f21ba3ef0>
+<img width=90% src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
+<br><br/>
 </p>
 
-<img src="https://github.com/user-attachments/assets/e36fdcb9-86cf-4aa9-a292-ab1581c7294f" />
-<br><br/>
+# Just Climb. Your highlight is ready.
+이제 1분짜리 클라이밍 영상을 직접 10분씩 편집하느라 애쓰지 않아도 됩니다. 
+
+클릭 한 번으로 수동 편집을 자동화 – 긴 편집 과정을 즉석에서 단축하는 AI 클라이밍 영상 편집
+
+<!--# 입출력 영상-->
+<p align="center">
+<img width=60% src=https://github.com/user-attachments/assets/1d91e491-1efc-4085-8d06-bb4f21ba3ef0>
+</p>
+
 <!--# 뱃지-->
 <div align="center">
 <img src=https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54>
@@ -13,13 +21,10 @@
 <img src=https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white>
 </div>
 
-# Catchphrase
-클릭 한 번으로 수동 편집을 자동화 – 긴 편집 과정을 즉석에서 단축하는 AI 클라이밍 영상 편집
-# 링크, QR
+# 바로 경험해보세요. 
 
 # CruxCut
-이 프로젝트는 딥러닝 기반의 객체 검출 기술을 활용하여 실시간 등반자 중심의 프레임 편집과정을 자동화하고 효율성을 높이는 AI 편집 서비스입니다.
--> CruxCut AI는 등반 영상에서 여러분들에게 포커스된 영상을 자동으로 생성해주는 클라이밍 영상 자동 편집 AI 서비스 입니다.
+CruxCut AI는 등반 영상에서 여러분들에게 포커스된 영상을 자동으로 생성해주는 클라이밍 영상 자동 편집 AI 서비스 입니다.
 
 # Motivation
 등반 영상은 대부분 고정된 카메라로 촬영되며, 촬영된 전체 영상에서 실제 등반 장면이나 하이라이트 순간만을 추출해 편집하는 과정은 시간과 노력이 많이 소모되는 반복 작업입니다. 특히, 등반자가 프레임 내에서 작아지거나 움직임이 많을 경우, 이를 수작업으로 식별하고 잘라내는 것은 더욱 번거롭고 비효율적입니다. 이러한 문제는 개인 크리에이터뿐만 아니라 스포츠 미디어 제작자에게도 생산성 저하와 콘텐츠 품질 저하로 이어질 수 있습니다. 우리는 이러한 편집 비효율을 해결하기 위해, AI를 활용한 자동 편집 기술의 필요성을 느꼈습니다.
