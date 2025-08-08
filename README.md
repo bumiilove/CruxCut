@@ -1,10 +1,10 @@
 <!--# 입출력 영상-->
 <p align="center">
-<img width=60% src=https://github.com/user-attachments/assets/1d91e491-1efc-4085-8d06-bb4f21ba3ef0>
+<img width=70% src=https://github.com/user-attachments/assets/1d91e491-1efc-4085-8d06-bb4f21ba3ef0>
 </p>
 
 # 🧗 Just Climb. Your highlight is ready.
-이제 1분짜리 클라이밍 영상을 직접 10분씩 편집하느라 애쓰지 않아도 됩니다. 
+이제 1분짜리 클라이밍 영상을 직접 하나하나 편집하느라 애쓰지 않아도 됩니다. 
 
 ~~클릭 한 번으로 수동 편집을 자동화 – 긴 편집 과정을 즉석에서 단축하는 AI 클라이밍 영상 편집~~ 
 
