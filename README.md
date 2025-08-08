@@ -56,7 +56,8 @@ YOLO 기반의 경량화된 객체 검출 모델을 활용하여 등반자의 �
 Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 직접 확인해보세요!
 -> CruxCut은 여러분이 클라이밍 영상을 업로드만 하면, 자동으로 여러분을 따라다니는 영상을 편집해줍니다! 
 아래 영상은 **수동 편집의 번거로움**과 **CruxCut**을 통한 자동 편집의 편리함**을 비교하여 보여줍니다.
-<p align="left">
+
+<p align="center">
 <img width=30% src=https://github.com/user-attachments/assets/888a534d-6092-47c1-b20e-dae141e58009>
 </p>
 
