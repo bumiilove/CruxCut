@@ -1,6 +1,6 @@
 <!--# 입출력 영상-->
 <p align="center">
-<img width=70% src=https://github.com/user-attachments/assets/1d91e491-1efc-4085-8d06-bb4f21ba3ef0>
+<img width=70% src=https://github.com/user-attachments/assets/5d6baadd-55cc-4a24-8931-3962fcacf57d>
 </p>
 
 # 🧗 Just Climb. Your highlight is ready.
