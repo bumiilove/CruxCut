@@ -64,15 +64,20 @@ Cruxcut이 여러분의 클라이밍 영상을 혁신적으로 편집하는지 �
 ## Quick guide
 
 ### build
-To get started, install required python packages into your working directory
+시작하기전 아래의 명령어를 통해 파이썬 패키지를 workplace에 설치해주세요.
 ```shell
 pip install -r requirements.txt
 ```
 ### run
-run our crux-cut on your local network via:
+backend api 호출은 아래의 명령어를 통해 실행됩니다.
 ```shell
 uvicorn main:app --reload --host 0.0.0.0 --port your_port
 ```
+영상편집은 아래의 명령어를 통해 실행됩니다.
+```shell
+python scripts/video_cropper_oop.py --input [입력 비디오 경로] --output [출력 저장 경로]
+```
+
 
 ## License
 
