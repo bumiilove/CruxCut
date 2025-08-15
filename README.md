@@ -90,8 +90,7 @@ python scripts/video_cropper_oop.py --input [입력 비디오 경로] --output [
    <!--       <br /><sub>소속2</sub> -->
     </td>
         <td align="center" width="250px" style="padding: 0 20px; border: none;">
-       <!-- 민건 사진 삽입 -->
-        <img src="사진_URL_3" width="120px" style="border-radius: 50%;" alt=""/>          
+        <img src="https://github.com/user-attachments/assets/06c5fa42-c487-4f22-b126-b730a746b7ac" width="120px" style="border-radius: 50%;" alt=""/>          
         <br /><b>민 건</b>
         <br /><a href="mgun1520@gmail.com">mgun1520@gmail.com</a>
   <!--       <br /><sub>소속3</sub> -->
